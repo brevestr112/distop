@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --bg: #0f172a; --panel: #1e293b; --panel-hover: #273549; 
+            --text: #f8fafc; --text-muted: #94a3b8; 
+            --accent: #38bdf8; --accent-hover: #0ea5e9; 
+            --danger: #fb7185; --gold: #f2c94c;
+            --msg-mine: #0284c7; --msg-their: #334155;
+            --tag-creator: #f2c94c; --tag-ceo: #ef4444; --tag-mod: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+
+        /* Анимации и эффекты */
+        .frame-default { border: 2px solid #475569; }
+        .frame-gold { border: 2px solid var(--gold); box-shadow: 0 0 10px var(--gold); }
+        .frame-neon { border: 2px solid var(--accent); box-shadow: 0 0 10px var(--accent); }
+        .frame-fire { border: 2px solid #f97316; box-shadow: 0 0 15px #f97316; animation: fire 1s infinite alternate; }
+        .frame-rainbow { border: 2px solid transparent; box-shadow: 0 0 10px #ff0000, 0 0 20px #00ff00; animation: rainbow-shadow 3s infinite alternate; }
+        @keyframes fire { from { box-shadow: 0 0 10px #f97316; } to { box-shadow: 0 0 20px #ef4444; } }
+        @keyframes rainbow-shadow { 0% { box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000; } 50% { box-shadow: 0 0 10px #0000ff, 0 0 20px #0000ff; } 100% { box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000; } }
+
+        .effect-pulse { animation: pulse-av 2s infinite; }
+        .effect-spin { animation: spin-av 4s linear infinite; }
+        @keyframes pulse-av { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        @keyframes spin-av { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .font-mono { font-family: 'Roboto Mono', monospace; }
+        .font-italic { font-family: 'Playfair Display', serif; font-style: italic; }
+
+        body.bg-aurora { background: linear-gradient(45deg, #0f172a, #1e1b4b, #064e3b, #0f172a); background-size: 400% 400%; animation: aurora 15s ease infinite; }
+        body.bg-nebula { background: radial-gradient(circle at top right, #4c1d95, #0f172a, #000); background-size: 200% 200%; animation: nebula 10s infinite alternate; }
+        @keyframes aurora { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes nebula { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
+
+        .theme-default { background: transparent; }
+        .theme-space { background: radial-gradient(circle at top right, #1e1b4b, #0f172a); }
+        .theme-matrix { background: linear-gradient(45deg, #022c22, #0f172a); }
+
+        /* Общие стили */
+        #auth-screen { display: flex; justify-content: center; align-items: center; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; background: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%); z-index: 999; }
+        .auth-box { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); padding: 40px; border-radius: 24px; width: 380px; text-align: center; }
+        .auth-box h1 { color: var(--accent); font-size: 32px; margin-bottom: 8px; font-weight: 800; }
+        
+        input, textarea { width: 100%; padding: 14px 16px; margin-bottom: 16px; border-radius: 12px; border: 1px solid #334155; background: var(--bg); color: white; font-size: 15px; outline: none; }
+        button { background: var(--accent); color: #000; padding: 14px 20px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 15px; transition: all 0.2s; width: 100%; }
+        button:hover { background: var(--accent-hover); }
+        button.secondary { background: transparent; border: 1px solid #334155; color: var(--text); }
+
+        #app-screen { display: none; width: 100%; height: 100%; }
+        #app-screen.active { display: flex; }
+        .layout { display: flex; width: 100%; height: 100%; }
+        
+        .sidebar { width: 340px; background: var(--panel); border-right: 1px solid #1e293b; display: flex; flex-direction: column; z-index: 10; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid #334155; }
+        .profile-card { display: flex; align-items: center; gap: 16px; cursor: pointer; }
+        .profile-info h3 { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        
+        .tag { font-size: 10px; padding: 2px 6px; border-radius: 6px; font-weight: 700; text-transform: uppercase; color: #000; }
+        .tag-creator { background: var(--tag-creator); }
+        .tag-ceo { background: var(--tag-ceo); color: white; }
+        .tag-mod { background: var(--tag-mod); }
+
+        .nav-tabs { display: flex; padding: 10px 20px; gap: 10px; border-bottom: 1px solid #334155; overflow-x: auto; }
+        .nav-tabs button { padding: 8px 16px; background: transparent; color: var(--text-muted); font-size: 13px; border-radius: 20px; width: auto; white-space: nowrap; }
+        .nav-tabs button.active { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+        
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 10px; }
+        .section-title { color: var(--text-muted); font-size: 11px; text-transform: uppercase; margin: 15px 10px 10px; font-weight: 700; }
+        .search-box input { margin: 0; padding: 10px 14px; border-radius: 20px; font-size: 14px; }
+
+        .user-item { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 12px; cursor: pointer; }
+        .user-item:hover { background: var(--panel-hover); }
+        .user-item .name { font-weight: 500; font-size: 15px; }
+
+        .avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #475569; font-size: 18px; font-weight: 700; background-size: cover; background-position: center; flex-shrink: 0; position: relative; }
+
+        .main { flex: 1; display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.85); position: relative; backdrop-filter: blur(5px); }
+        .header { padding: 20px 30px; background: var(--panel); border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        .content { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; align-items: center; }
+        .feed-container { width: 100%; max-width: 600px; }
+        
+        .post { background: var(--panel); padding: 24px; border-radius: 20px; margin-bottom: 20px; border: 1px solid #334155; }
+        .post-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+        .post-content { font-size: 16px; line-height: 1.6; }
+
+        .chat-container { width: 100%; max-width: 900px; display: flex; flex-direction: column; height: 100%; }
+        .chat-messages { flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding: 20px; border-radius: 20px; }
+        .message { display: flex; gap: 12px; max-width: 70%; }
+        .message.mine { align-self: flex-end; flex-direction: row-reverse; }
+        .msg-bubble { padding: 14px 18px; border-radius: 20px; background: var(--msg-their); font-size: 15px; }
+        .message.mine .msg-bubble { background: var(--msg-mine); border-bottom-right-radius: 6px; }
+        .message:not(.mine) .msg-bubble { border-bottom-left-radius: 6px; }
+
+        .chat-input-wrapper { padding-top: 20px; }
+        .chat-input { padding: 10px 15px; background: var(--panel); border-radius: 20px; display: flex; gap: 12px; align-items: center; border: 1px solid #334155; }
+        .chat-input input { margin: 0; border: none; background: transparent; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal.active { display: flex; }
+        .modal-box { background: var(--panel); padding: 40px; border-radius: 24px; width: 420px; position: relative; border: 1px solid #334155; }
+        .modal-banner { width: 100%; height: 150px; background-size: cover; background-position: center; border-radius: 16px; margin-bottom: 20px; background-color: #334155; position: relative; overflow: hidden; }
+        
+        .banner-glow::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.4), transparent); animation: glow 2s infinite; }
+        @keyframes glow { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+        .modal-profile { text-align: center; margin-top: -60px; position: relative; z-index: 2; }
+        .modal-profile .avatar { width: 100px; height: 100px; margin: 0 auto 15px; font-size: 36px; border-width: 4px; }
+
+        .admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .admin-table th, .admin-table td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
+        .admin-role-select { padding: 6px; border-radius: 6px; background: var(--bg); color: white; border: 1px solid #334155; }
+
+        .hidden { display: none !important; }
+        .mobile-menu-btn { display: none; }
+        .mobile-nav { display: none; }
+
+        @media (max-width: 768px) {
+            .layout { flex-direction: column; }
+            .sidebar { width: 100%; height: 100%; position: absolute; transform: translateX(-100%); transition: 0.3s; }
+            .sidebar.active { transform: translateX(0); }
+            .main { width: 100%; height: 100%; }
+            .mobile-menu-btn { display: block; background: transparent; color: white; font-size: 24px; border: none; }
+            .mobile-nav { display: flex; background: var(--panel); border-top: 1px solid #334155; padding: 10px; justify-content: space-around; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ЭКРАН ВХОДА -->
+    <div id="auth-screen">
+        <div class="auth-box">
+            <h1>DISTOP</h1>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">Твой код оживляет мечты</p>
+            <input type="text" id="username" placeholder="Никнейм">
+            <input type="password" id="password" placeholder="Пароль">
+            <button onclick="login()" style="margin-bottom: 12px;">Войти</button>
+            <button onclick="register()" class="secondary">Создать аккаунт</button>
+            <p id="auth-error" style="color: var(--danger); margin-top: 15px; font-size: 14px;"></p>
+        </div>
+    </div>
+
+    <!-- ОСНОВНОЙ ЭКРАН -->
+    <div id="app-screen">
+        <div class="layout">
+            
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="profile-card" onclick="openMyProfile()">
+                        <div id="my-avatar" class="avatar frame-default">U</div>
+                        <div class="profile-info">
+                            <h3 id="my-name">User <span id="my-tag"></span></h3>
+                            <p id="my-status" style="color: var(--text-muted); font-size: 12px; margin-top: 2px;"></p>
+                            <p style="color: var(--accent); font-size: 13px;"><span id="my-points">0</span> баллов</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="nav-tabs" id="nav-tabs">
+                    <button onclick="showTab('friends')" id="tab-friends" class="active">Люди</button>
+                    <button onclick="showTab('shop')" id="tab-shop">Магазин</button>
+                    <button onclick="showTab('admin')" id="tab-admin" class="hidden">Админка</button>
+                    <button onclick="logout()" class="danger" style="margin-left: auto; padding: 8px;">Выйти</button>
+                </div>
+
+                <div class="sidebar-content">
+                    <div id="friends-section">
+                        <div class="search-box"><input type="text" id="search-user" placeholder="Поиск..." oninput="searchUsers()"></div>
+                        <div id="user-list"></div>
+                    </div>
+                    
+                    <div id="shop-section" class="hidden">
+                        <div class="section-title">Кастомизация</div>
+                        <div id="shop-list"></div>
+                    </div>
+
+                    <div id="admin-section" class="hidden">
+                        <div class="section-title">Управление</div>
+                        <div id="admin-panel"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main">
+                <div class="header">
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+                    <h3 id="page-title">Лента</h3>
+                    <div class="header-actions">
+                        <button onclick="showFeed()" class="secondary" style="width: auto; padding: 8px 16px;">На главную</button>
+                    </div>
+                </div>
+                
+                <div id="feed-view" class="content">
+                    <div class="feed-container">
+                        <div class="post" style="padding: 20px;">
+                            <textarea id="post-text" placeholder="Что у вас нового?" rows="3" style="border:none; background:transparent; margin:0; padding:0 0 15px 0; font-size: 16px;"></textarea>
+                            <div style="display: flex; justify-content: flex-end;">
+                                <button onclick="createPost()" style="width: auto; border-radius: 20px;">Опубликовать (+10 💎)</button>
+                            </div>
+                        </div>
+                        <div id="posts-list"></div>
+                    </div>
+                </div>
+
+                <div id="chat-view" class="content hidden">
+                    <div class="chat-container">
+                        <div id="chat-messages" class="chat-messages theme-default"></div>
+                        <div class="chat-input-wrapper">
+                            <div class="chat-input">
+                                <input type="text" id="message" placeholder="Сообщение..." onkeypress="if(event.key === 'Enter') sendMsg()">
+                                <button onclick="sendMsg()" style="width: auto; padding: 0 20px;">➤</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mobile-nav">
+                <button onclick="showFeed(); toggleSidebar(true)" style="font-size: 24px; background: transparent; color: white;">🏠</button>
+                <button onclick="toggleSidebar()" style="font-size: 24px; background: transparent; color: white;">💬</button>
+                <button onclick="openMyProfile()" style="font-size: 24px; background: transparent; color: white;">👤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ПРОФИЛЯ -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeModal()" style="position: absolute; right: 15px; top: 15px; background: transparent; border: none; color: white; font-size: 20px; cursor: pointer; z-index: 5;">✕</button>
+            <div id="profile-banner" class="modal-banner"></div>
+            <div class="modal-profile">
+                <div id="profile-avatar" class="avatar frame-default">U</div>
+                <h2 id="profile-name" style="margin-bottom: 5px;">User</h2>
+                <div id="profile-bio" style="color: var(--text-muted); margin-bottom: 20px;">Нет описания</div>
+                <div id="profile-actions" style="display: flex; gap: 10px; justify-content: center;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null, currentUser = null, currentChat = null;
+
+        async function api(url, method = 'GET', data = null) {
+            const opts = { method, headers: {'Content-Type': 'application/json'} };
+            if (data) opts.body = JSON.stringify(data);
+            const res = await fetch(url, opts);
+            return await res.json();
+        }
+
+        function toast(msg) { alert(msg); }
+
+        // --- АВТОРИЗАЦИЯ ---
+        async function register() {
+            const res = await api('/api/register', 'POST', {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            });
+            if (res.ok) login(); else toast(res.error);
+        }
+
+        async function login() {
+            const res = await api('/api/login', 'POST', {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            });
+            if (res.ok) {
+                localStorage.setItem('distop_user', document.getElementById('username').value);
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('app-screen').classList.add('active');
+                initApp();
+            } else toast(res.error);
+        }
+
+        async function logout() {
+            await api('/api/logout', 'POST');
+            localStorage.removeItem('distop_user');
+            location.reload();
+        }
+
+        window.onload = async () => {
+            if (localStorage.getItem('distop_user')) {
+                const res = await api('/api/me');
+                if (res.user) {
+                    document.getElementById('auth-screen').style.display = 'none';
+                    document.getElementById('app-screen').classList.add('active');
+                    initApp();
+                }
+            }
+        };
+
+        // --- ИНИЦИАЛИЗАЦИЯ ---
+        async function initApp() {
+            const me = await api('/api/me');
+            currentUser = me.user;
+            
+            // Применяем глобальные стили
+            document.body.className = currentUser.bg_effect || '';
+            document.body.classList.add(currentUser.font_style || 'font-default');
+
+            document.getElementById('my-name').innerHTML = `<span style="color: ${currentUser.nick_color}">${currentUser.username}</span>`;
+            document.getElementById('my-status').innerText = currentUser.status || '';
+            document.getElementById('my-points').innerText = currentUser.points;
+            
+            const roleTags = { creator: 'Создатель', ceo: 'CEO', moderator: 'Модер' };
+            if (roleTags[currentUser.role]) {
+                document.getElementById('my-tag').innerHTML = `<span class="tag tag-${currentUser.role}">${roleTags[currentUser.role]}</span>`;
+                if(currentUser.role === 'creator' || currentUser.role === 'ceo' || currentUser.role === 'moderator') {
+                    document.getElementById('tab-admin').classList.remove('hidden');
+                }
+            }
+
+            setAvatar('my-avatar', currentUser);
+            loadUsers(); loadPosts(); connectWS();
+        }
+
+        function setAvatar(id, user) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.className = 'avatar ' + (user.frame || 'frame-default') + ' ' + (user.avatar_effect || '');
+            if (user.avatar) { el.style.backgroundImage = `url(${user.avatar})`; el.innerText = ''; }
+            else { el.style.backgroundImage = 'none'; el.innerText = user.username[0].toUpperCase(); }
+        }
+
+        function toggleSidebar(forceClose = false) {
+            const sb = document.getElementById('sidebar');
+            if (forceClose) sb.classList.remove('active');
+            else sb.classList.toggle('active');
+        }
+
+        function showTab(tab) {
+            ['friends', 'shop', 'admin'].forEach(t => {
+                document.getElementById('tab-' + t).classList.remove('active');
+                document.getElementById(t + '-section').classList.add('hidden');
+            });
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.getElementById(tab + '-section').classList.remove('hidden');
+            if (tab === 'shop') loadShop();
+            if (tab === 'admin') loadAdmin();
+        }
+
+        let searchTimeout;
+        function searchUsers() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => loadUsers(document.getElementById('search-user').value), 300);
+        }
+
+        // --- ЗАГРУЗКА ДАННЫХ ---
+        async function loadUsers(query = '') {
+            const res = await api('/api/users?q=' + encodeURIComponent(query));
+            const list = document.getElementById('user-list');
+            list.innerHTML = '';
+            (res.users || []).forEach(u => {
+                if (u.username === currentUser.username) return;
+                const div = document.createElement('div');
+                div.className = 'user-item';
+                div.innerHTML = `
+                    <div class="avatar ${u.frame}">${u.username[0].toUpperCase()}</div>
+                    <div class="name" style="color: ${u.nick_color}">${u.username}</div>
+                `;
+                div.onclick = () => openChat(u.username);
+                list.appendChild(div);
+            });
+        }
+
+        async function loadPosts() {
+            const res = await api('/api/posts');
+            const list = document.getElementById('posts-list');
+            list.innerHTML = '';
+            (res.posts || []).forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'post';
+                div.innerHTML = `
+                    <div class="post-header">
+                        <div class="avatar ${p.frame}">${p.username[0].toUpperCase()}</div>
+                        <b>${p.username}</b>
+                    </div>
+                    <div class="post-content">${p.text}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        async function loadShop() {
+            const res = await api('/api/shop');
+            const list = document.getElementById('shop-list');
+            list.innerHTML = '';
+            (res.items || []).forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'user-item';
+                div.innerHTML = `<div style="flex:1;">${item.name} <br><small style="color:var(--accent)">${item.price} 💎</small></div>`;
+                const btn = document.createElement('button');
+                btn.innerText = item.bought ? 'Куплено' : 'Купить';
+                btn.style = "width:auto; padding:5px 10px; font-size:12px;";
+                btn.disabled = item.bought;
+                btn.onclick = async () => {
+                    const r = await api('/api/shop/buy/' + item.id, 'POST');
+                    if (r.ok) { initApp(); showTab('shop'); toast('Куплено!'); } else toast(r.error);
+                };
+                div.appendChild(btn);
+                list.appendChild(div);
+            });
+        }
+
+        async function loadAdmin() {
+            const res = await api('/api/admin/users');
+            if (res.error) return toast(res.error);
+            const panel = document.getElementById('admin-panel');
+            panel.innerHTML = `<table class="admin-table"><tr><th>Ник</th><th>Роль</th></tr></table>`;
+            const table = panel.querySelector('table');
+            
+            (res.users || []).forEach(u => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${u.username}</td><td>
+                    <select class="admin-role-select" onchange="changeRole('${u.username}', this.value)">
+                        <option value="user" ${u.role === 'user' ? 'selected' : ''}>Юзер</option>
+                        <option value="moderator" ${u.role === 'moderator' ? 'selected' : ''}>Модер</option>
+                        <option value="ceo" ${u.role === 'ceo' ? 'selected' : ''}>CEO</option>
+                        <option value="creator" ${u.role === 'creator' ? 'selected' : ''}>Создатель</option>
+                    </select>
+                </td>`;
+                table.appendChild(tr);
+            });
+        }
+
+        async function changeRole(username, role) {
+            const res = await api('/api/admin/role', 'POST', {username, role});
+            if (res.ok) toast('Роль обновлена!'); else toast(res.error);
+        }
+
+        async function createPost() {
+            const text = document.getElementById('post-text').value;
+            if (!text) return;
+            const res = await api('/api/posts', 'POST', {text});
+            if (res.ok) {
+                document.getElementById('post-text').value = '';
+                loadPosts(); initApp();
+                toast(res.points_added > 0 ? `+${res.points_added} баллов!` : 'Лимит исчерпан');
+            }
+        }
+
+        function showFeed() {
+            document.getElementById('feed-view').classList.remove('hidden');
+            document.getElementById('feed-view').style.display = 'flex';
+            document.getElementById('chat-view').classList.add('hidden');
+            document.getElementById('chat-view').style.display = 'none';
+            document.getElementById('page-title').innerText = 'Лента';
+            currentChat = null;
+        }
+
+        // --- ЧАТ ---
+        async function openChat(username) {
+            currentChat = username;
+            toggleSidebar(true);
+            document.getElementById('feed-view').classList.add('hidden');
+            document.getElementById('feed-view').style.display = 'none';
+            document.getElementById('chat-view').classList.remove('hidden');
+            document.getElementById('chat-view').style.display = 'flex';
+            document.getElementById('page-title').innerText = 'Чат с ' + username;
+            
+            // Применяем тему чата
+            const msgArea = document.getElementById('chat-messages');
+            msgArea.className = 'chat-messages ' + (currentUser.chat_theme || 'theme-default');
+            msgArea.innerHTML = '';
+            
+            const res = await api('/api/chats/' + username);
+            if (res.messages) res.messages.forEach(m => addMessage(m.sender, m.text));
+        }
+
+        function connectWS() {
+            if (ws) ws.close();
+            ws = new WebSocket('ws://' + location.host + '/ws/chat');
+            ws.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.from && !data.action) {
+                    if (data.from === currentChat) addMessage(data.from, data.text);
+                }
+            };
+        }
+
+        function sendMsg() {
+            const text = document.getElementById('message').value;
+            if (ws && currentChat && text) {
+                ws.send(JSON.stringify({to: currentChat, text: text}));
+                document.getElementById('message').value = '';
+            }
+        }
+
+        function addMessage(sender, text) {
+            const area = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = 'message' + (sender === currentUser.username ? ' mine' : '');
+            div.innerHTML = `<div class="msg-bubble">${text}</div>`;
+            area.appendChild(div); area.scrollTop = area.scrollHeight;
+        }
+
+        // --- ПРОФИЛЬ ---
+        async function openMyProfile() {
+            const actions = document.getElementById('profile-actions');
+            actions.innerHTML = '';
+            
+            const editBtn = document.createElement('button');
+            editBtn.innerText = 'Редактировать';
+            editBtn.onclick = editProfile;
+            actions.appendChild(editBtn);
+
+            setAvatar('profile-avatar', currentUser);
+            document.getElementById('profile-name').innerText = currentUser.username;
+            document.getElementById('profile-bio').innerText = currentUser.bio || 'Нет описания';
+            
+            const banner = document.getElementById('profile-banner');
+            banner.className = 'modal-banner ' + (currentUser.banner_effect || '');
+            if (currentUser.banner) banner.style.backgroundImage = `url(${currentUser.banner})`;
+            else banner.style.background = 'linear-gradient(45deg, #1e293b, #0ea5e9)';
+
+            document.getElementById('profile-modal').classList.add('active');
+            toggleSidebar(true);
+        }
+
+        function closeModal() { document.getElementById('profile-modal').classList.remove('active'); }
+
+        async function editProfile() {
+            const newBio = prompt('О себе:', currentUser.bio || '');
+            if (newBio === null) return;
+            const newAvatar = prompt('Ссылка на аватарку:', currentUser.avatar || '');
+            if (newAvatar === null) return;
+            const newBanner = prompt('Ссылка на баннер:', currentUser.banner || '');
+            if (newBanner === null) return;
+            const newStatus = prompt('Ваш статус:', currentUser.status || '');
+            if (newStatus === null) return;
+
+            await api('/api/profile/update', 'POST', {bio: newBio, avatar: newAvatar, banner: newBanner, status: newStatus});
+            const me = await api('/api/me');
+            currentUser = me.user;
+            openMyProfile();
+            setAvatar('my-avatar', currentUser);
+            loadUsers(); loadPosts();
+        }
+    </script>
+</body>
+</html>
